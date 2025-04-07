@@ -1,0 +1,248 @@
+</html>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Slap the sh*t</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Courier New', Courier, monospace, sans-serif;
+      background: url('https://i.ibb.co.com/DHV78b1r/pngtree-city-with-piles-of-garbage-picture-image-2771354.png') no-repeat center center fixed;
+      background-size: cover;
+      overflow: hidden;
+    }
+    #game-area {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    .insect {
+      position: absolute;
+      height: auto;
+      width: auto;
+      max-width: 80px;
+      max-height: 80px;
+      z-index: 2;
+    }
+    .slap {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      z-index: 4;
+      pointer-events: none;
+    }
+    #score-board, #missed-board {
+      position: absolute;
+      top: 10px;
+      font-size: 22px;
+      font-weight: bold;
+      background: rgba(255,255,255,0.6);
+      padding: 8px 12px;
+      border-radius: 8px;
+      z-index: 5;
+    }
+    #score-board {
+      left: 10px;
+    }
+    #missed-board {
+      right: 10px;
+    }
+    #start-screen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.75);
+      color: white;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      cursor: pointer;
+    }
+    #game-over {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      color: white;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 999;
+      display: none;
+      padding: 20px;
+      text-align: center;
+    }
+    #warning {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      font-weight: bold;
+      background: rgba(255, 0, 0, 0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      z-index: 6;
+      display: none;
+    }
+    #high-score-display {
+      margin-top: 10px;
+      font-size: 18px;
+      color: #ffc;
+    }
+  </style>
+</head>
+<body>
+
+<div id="start-screen" onclick="startGame()">👆 Tap to Slapping!</div>
+<div id="game-area">
+  <div id="score-board">Score: 0</div>
+  <div id="missed-board">Missed: 0 / 3</div>
+  <div id="warning">⚠️ 2 Misses! Careful!</div>
+  <div id="game-over">
+    <div id="final-score"></div>
+    <div id="high-score-display"></div>
+    <button onclick="location.reload()">Start Slapping Again</button>
+  </div>
+</div>
+
+<!-- Sounds -->
+<audio id="hit-sound">
+  <source src="https://media.vocaroo.com/mp3/16j2unicem8q" type="audio/mpeg">
+</audio>
+<audio id="explosion-sound">
+  <source src="https://assets.mixkit.co/sfx/preview/mixkit-quick-explosion-1688.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+  const gameArea = document.getElementById('game-area');
+  const scoreBoard = document.getElementById('score-board');
+  const missedBoard = document.getElementById('missed-board');
+  const warning = document.getElementById('warning');
+  const gameOverScreen = document.getElementById('game-over');
+  const finalScore = document.getElementById('final-score');
+  const highScoreDisplay = document.getElementById('high-score-display');
+  const startScreen = document.getElementById('start-screen');
+  const hitSound = document.getElementById('hit-sound');
+  const explosionSound = document.getElementById('explosion-sound');
+  const gameOverMessages = [
+  "From the river to the sea, Palestine will be free",
+  "Don't give up, Palestine needs you!",
+  "Keep slapping, you're doing great!"
+];
+
+  let score = 0;
+  let missed = 0;
+  let interval;
+  let spawnDelay = 1500;
+  const insectImages = [
+    'https://i.ibb.co.com/nskbywqZ/Benjamin-Netanyahu1-removebg-preview.png',
+    'https://i.ibb.co.com/chZrWCZg/Trump-evil-stupid-both-rtr-img-removebg-preview.png'
+  ];
+
+  function getSpawnDelay(score) {
+    if (score > 40) return 700;
+if (score > 35) return 750;
+if (score > 30) return 800;
+if (score > 25) return 850;
+if (score > 20) return 900;
+if (score > 15) return 1000;
+if (score > 10) return 1100;
+if (score > 5)  return 1300;
+return 1500; // For scores 1-5
+  }
+
+  function spawnInsect() {
+    const insect = document.createElement('img');
+    insect.src = insectImages[Math.floor(Math.random() * insectImages.length)];
+    insect.className = 'insect';
+    insect.style.left = Math.random() * (window.innerWidth - 60) + 'px';
+    insect.style.top = Math.random() * (window.innerHeight - 60) + 'px';
+
+    let clicked = false;
+
+    insect.addEventListener('click', () => {
+      if (!clicked) {
+        clicked = true;
+        score++;
+        scoreBoard.textContent = 'Score: ' + score;
+        missed = 0;
+        missedBoard.textContent = 'Missed: ' + missed + ' / 3';
+        warning.style.display = 'none';
+        showSlap(insect);
+        hitSound.currentTime = 0;
+        hitSound.play();
+        insect.remove();
+        adjustDifficulty();
+      }
+    });
+
+    gameArea.appendChild(insect);
+
+    setTimeout(() => {
+      if (!clicked && insect.parentNode) {
+        insect.remove();
+        missed++;
+        missedBoard.textContent = 'Missed: ' + missed + ' / 3';
+        if (missed === 2) {
+          warning.style.display = 'block';
+          setTimeout(() => warning.style.display = 'none', 1500);
+        }
+        if (missed >= 3) {
+          gameOver();
+        }
+      }
+    }, spawnDelay - 300);
+  }
+
+  function showSlap(target) {
+    const slap = document.createElement('img');
+    slap.src = 'https://i.ibb.co.com/ZzpyyLJ7/shoe-footprint-9.png';
+    slap.className = 'slap';
+    slap.style.left = target.style.left;
+    slap.style.top = target.style.top;
+    gameArea.appendChild(slap);
+    setTimeout(() => slap.remove(), 300);
+  }
+
+  function adjustDifficulty() {
+    clearInterval(interval);
+    spawnDelay = getSpawnDelay(score);
+    interval = setInterval(spawnInsect, spawnDelay);
+  }
+
+  function startGame() {
+    startScreen.style.display = 'none';
+    adjustDifficulty();
+  }
+
+  function gameOver() {
+    clearInterval(interval);
+    explosionSound.currentTime = 0;
+    explosionSound.play();
+    finalScore.textContent = `💥You slapped the sh*t out of them ${score} times`;
+
+    let storedHighScore = localStorage.getItem('bugSlapHighScore') || 0;
+    if (score > storedHighScore) {
+      localStorage.setItem('bugSlapHighScore', score);
+      storedHighScore = score;
+    }
+    highScoreDisplay.textContent = `🏆 High Score (This Device): ${storedHighScore}`;
+
+    gameOverScreen.style.display = 'flex';
+  }
+</script>
+
+</body>
+</html>
